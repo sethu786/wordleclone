@@ -1,4 +1,5 @@
 import {useState, useEffect} from 'react'
+import {v4 as uuidv4} from 'uuid'
 import './App.css'
 
 const getRandomWord = () => {
@@ -17,13 +18,12 @@ const getRandomWord = () => {
   return words[Math.floor(Math.random() * words.length)]
 }
 
-const validateGuess = (guess, targetWord) => {
-  return guess.split('').map((letter, index) => {
+const validateGuess = (guess, targetWord) =>
+  guess.split('').map((letter, index) => {
     if (letter === targetWord[index]) return 'green'
     if (targetWord.includes(letter)) return 'yellow'
     return 'gray'
   })
-}
 
 const MAX_ATTEMPTS = 5
 
@@ -39,15 +39,12 @@ const App = () => {
     localStorage.setItem('theme', theme)
   }, [theme])
 
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark')
-  }
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
 
   const handleGuess = () => {
     if (input.length !== 5 || gameStatus !== 'playing') return
-
     const feedback = validateGuess(input, targetWord)
-    setGuesses([...guesses, {word: input, feedback}])
+    setGuesses([...guesses, {word: input, feedback, id: uuidv4()}])
     setInput('')
 
     if (input === targetWord) {
@@ -71,28 +68,38 @@ const App = () => {
   return (
     <div className={`game-container ${theme}`}>
       <h1>Wordle Clone</h1>
-      <button className="theme-toggle" onClick={toggleTheme}>
+      <button type="button" className="theme-toggle" onClick={toggleTheme}>
         {theme === 'dark' ? '🌞 Light Mode' : '🌙 Dark Mode'}
       </button>
-      <button className="new-game-btn" onClick={resetGame}>
+      <button type="button" className="new-game-btn" onClick={resetGame}>
         🔄 New Game
       </button>
 
       <div className="grid">
-        {Array.from({length: MAX_ATTEMPTS}).map((_, rowIndex) => (
-          <div className="row" key={rowIndex}>
-            {Array.from({length: 5}).map((_, colIndex) => {
-              const guess = guesses[rowIndex]
-              const letter = guess ? guess.word[colIndex] : ''
-              const color = guess ? guess.feedback[colIndex] : 'empty'
-              return (
-                <div className={`cell ${color}`} key={colIndex}>
-                  {letter.toUpperCase()}
-                </div>
-              )
-            })}
+        {guesses.map(guess => (
+          <div className="row" key={guess.id}>
+            {guess.word.split('').map((letter, index) => (
+              <div
+                className={`cell ${guess.feedback[index]}`}
+                key={`${guess.word}-${letter}-${uuidv4()}`}
+              >
+                {letter.toUpperCase()}
+              </div>
+            ))}
           </div>
         ))}
+
+        {Array.from({length: MAX_ATTEMPTS - guesses.length}).map(() => {
+          const emptyRowId = uuidv4()
+          return (
+            <div className="row" key={emptyRowId}>
+              {Array.from({length: 5}).map(() => {
+                const emptyCellId = uuidv4()
+                return <div className="cell empty" key={emptyCellId} />
+              })}
+            </div>
+          )
+        })}
       </div>
 
       {gameStatus === 'playing' ? (
@@ -106,9 +113,13 @@ const App = () => {
             placeholder="Enter a 5-letter word"
           />
           <div className="button-group">
-            <button onClick={handleGuess}>Submit</button>
-            <button onClick={handleDelete}>⌫ Delete</button>
-            <button className="clear-btn" onClick={handleClear}>
+            <button type="button" onClick={handleGuess}>
+              Submit
+            </button>
+            <button type="button" onClick={handleDelete}>
+              ⌫ Delete
+            </button>
+            <button type="button" className="clear-btn" onClick={handleClear}>
               Clear
             </button>
           </div>
